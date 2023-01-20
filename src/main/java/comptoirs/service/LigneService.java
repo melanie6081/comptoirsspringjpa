@@ -3,11 +3,15 @@ package comptoirs.service;
 import comptoirs.dao.CommandeRepository;
 import comptoirs.dao.LigneRepository;
 import comptoirs.dao.ProduitRepository;
+import comptoirs.entity.Commande;
 import comptoirs.entity.Ligne;
+import comptoirs.entity.Produit;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Positive;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+
+import java.math.BigDecimal;
 
 @Service
 @Validated // Les contraintes de validatipn des méthodes sont vérifiées
@@ -45,6 +49,23 @@ public class LigneService {
      */
     @Transactional
     Ligne ajouterLigne(Integer commandeNum, Integer produitRef, @Positive int quantite) {
-        throw new UnsupportedOperationException("Cette méthode n'est pas implémentée");
+        // On vérifie que la commande existe
+        var commande = commandeDao.findById(commandeNum).orElseThrow();
+        // On vérifie que le produit existe
+        var produit = produitDao.findById(produitRef).orElseThrow();
+        //On vérifie que la commande n'a pas été envoyée
+        if (commande.getEnvoyeele()!=null){
+            throw new UnsupportedOperationException("La commande a déjà été envoyée.");
+        }
+        // On s'assure que la quantité est positive et le stock suffisant
+        if(quantite>produit.getUnitesEnStock()){
+            throw new UnsupportedOperationException("Quantité invalide");
+        }
+        // On crée une nouvelle ligne
+        var nouvelleLigne = new Ligne(commande, produit, quantite);
+        // On incrémente le nombre de produits
+        produit.setUnitesCommandees(produit.getUnitesCommandees()+nouvelleLigne.getQuantite());
+        ligneDao.save(nouvelleLigne);
+        return nouvelleLigne;
     }
 }
